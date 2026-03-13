@@ -1,7 +1,7 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { db } from "../db"; // your drizzle instance
-import * as schema from "../db/schema/auth";
+import { db } from "../db/index.js"; // your drizzle instance
+import * as schema from "../db/schema/auth.js";
 
 export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET!, //! mean this value is not Null or Undefine so do not take error type
