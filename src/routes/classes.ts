@@ -2,7 +2,13 @@ import { and, desc, eq, getTableColumns, ilike, or, sql } from "drizzle-orm";
 import express from "express";
 
 import { db } from "../db/index.js";
-import { classes, departments, subjects, user } from "../db/schema/index.js";
+import {
+  classes,
+  departments,
+  subjects,
+  user,
+  enrollments,
+} from "../db/schema/index.js";
 
 const router = express.Router();
 
@@ -85,7 +91,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-// Get class details with teacher, subject, and department
+// Get class details with teacher, subject, department and enrollment count
 router.get("/:id", async (req, res) => {
   const classId = Number(req.params.id);
 
@@ -113,7 +119,95 @@ router.get("/:id", async (req, res) => {
 
   if (!classDetails) return res.status(404).json({ error: "No Class found." });
 
-  res.status(200).json({ data: classDetails });
+  const counts = await db
+    .select({ enrolled: sql<number>`count(*)` })
+    .from(enrollments)
+    .where(eq(enrollments.classId, classId));
+
+  return res.status(200).json({
+    data: {
+      ...classDetails,
+      enrolledCount: counts[0]?.enrolled ?? 0,
+      remainingSeats: Math.max(
+        0,
+        classDetails.capacity - (counts[0]?.enrolled ?? 0),
+      ),
+    },
+  });
+});
+
+router.put("/:id", async (req, res) => {
+  const classId = Number(req.params.id);
+
+  if (!Number.isFinite(classId))
+    return res.status(400).json({ error: "Invalid class id." });
+
+  const {
+    name,
+    teacherId,
+    subjectId,
+    capacity,
+    description,
+    status,
+    bannerUrl,
+    bannerCldPubId,
+    schedules,
+  } = req.body;
+
+  try {
+    const [updatedClass] = await db
+      .update(classes)
+      .set({
+        name,
+        teacherId,
+        subjectId,
+        capacity,
+        description,
+        status,
+        bannerUrl,
+        bannerCldPubId,
+        schedules,
+      })
+      .where(eq(classes.id, classId))
+      .returning({ id: classes.id });
+
+    if (!updatedClass)
+      return res.status(404).json({ error: "No Class found." });
+
+    res.status(200).json({ data: updatedClass });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Failed to update class" });
+  }
+});
+
+router.delete("/:id", async (req, res) => {
+  const classId = Number(req.params.id);
+
+  if (!Number.isFinite(classId))
+    return res.status(400).json({ error: "Invalid class id." });
+
+  try {
+    const enrollmentCount = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(enrollments)
+      .where(eq(enrollments.classId, classId));
+
+    if ((enrollmentCount[0]?.count ?? 0) > 0) {
+      return res.status(409).json({
+        error: "Cannot delete class with enrolled students",
+      });
+    }
+
+    const deleted = await db.delete(classes).where(eq(classes.id, classId));
+
+    if (!deleted) return res.status(404).json({ error: "No Class found." });
+
+    res.status(204).send();
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Failed to delete class" });
+  }
 });
 
 //POST Classesx

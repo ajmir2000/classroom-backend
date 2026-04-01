@@ -2,9 +2,11 @@ import AgentAPI from "apminsight";
 AgentAPI.config();
 
 import express from "express";
+import departmentsRouter from "./routes/departments.js";
 import subjectsRouter from "./routes/subjects.js";
 import usersRouter from "./routes/users.js";
 import classesRouter from "./routes/classes.js";
+import enrollmentsRouter from "./routes/enrollments.js";
 import cors from "cors";
 import securityMiddleware from "./middleware/security.js";
 import { toNodeHandler } from "better-auth/node";
@@ -31,9 +33,11 @@ app.all("/api/auth/*splat", toNodeHandler(auth));
 app.use(express.json());
 
 app.use(securityMiddleware);
+app.use("/api/departments", departmentsRouter);
 app.use("/api/subjects", subjectsRouter);
 app.use("/api/users", usersRouter);
 app.use("/api/classes", classesRouter);
+app.use("/api/enrollments", enrollmentsRouter);
 app.get("/", (req, res) => {
   res.send("Hello, Welcome to the Classroom API!");
 });

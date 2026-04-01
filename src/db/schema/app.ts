@@ -258,10 +258,21 @@ export const classes = pgTable(
   }),
 );
 
-/*
-|--------------------------------------------------------------------------
-| Enrollments Table
-|--------------------------------------------------------------------------
+export const enrollments = pgTable("enrollments", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  classId: integer("class_id")
+    .notNull()
+    .references(() => classes.id, { onDelete: "cascade" }),
+  studentId: text("student_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().$onUpdate(() => new Date()).notNull(),
+},
+(table) => ({
+  classIdIdx: index("enrollments_class_id_idx").on(table.classId),
+  studentIdIdx: index("enrollments_student_id_idx").on(table.studentId),
+}));
 |
 | Connects students to classes.
 | Each record means a student joined a class.
