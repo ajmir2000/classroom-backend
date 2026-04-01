@@ -4,6 +4,7 @@ import { db } from "../db/index.js"; // your drizzle instance
 import * as schema from "../db/schema/auth.js";
 
 export const auth = betterAuth({
+  baseURL: "http://localhost:8000",
   secret: process.env.BETTER_AUTH_SECRET!, //! mean this value is not Null or Undefine so do not take error type
   trustedOrigins: [process.env.FRONTEND_URL!],
   database: drizzleAdapter(db, {
